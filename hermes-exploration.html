@@ -1,0 +1,716 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Hermes Agent — Exploration Notes</title>
+<style>
+  :root{
+    --bg:#ffffff; --bg2:#f7f6f2; --bg3:#efece4;
+    --text-primary:#1a1a18; --text-secondary:#5f5e5a; --text-tertiary:#888780;
+    --border:rgba(0,0,0,0.14); --border-strong:rgba(0,0,0,0.28);
+    --accent:#534ab7; --accent-soft:#eeedfe;
+    --font-sans:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;
+    --font-mono:"SF Mono",SFMono-Regular,ui-monospace,Menlo,Consolas,monospace;
+  }
+  @media (prefers-color-scheme: dark){
+    :root{
+      --bg:#191917; --bg2:#211f1c; --bg3:#2a2724;
+      --text-primary:#ededeb; --text-secondary:#a8a69e; --text-tertiary:#7d7b74;
+      --border:rgba(255,255,255,0.13); --border-strong:rgba(255,255,255,0.26);
+      --accent:#afa9ec; --accent-soft:#26215c;
+    }
+  }
+  *{box-sizing:border-box;}
+  html{scroll-behavior:smooth;}
+  body{
+    margin:0; background:var(--bg); color:var(--text-primary);
+    font-family:var(--font-sans); line-height:1.65; font-size:16px;
+    -webkit-font-smoothing:antialiased;
+  }
+  .wrap{max-width:940px; margin:0 auto; padding:48px 28px 120px;}
+  header.hero{border-bottom:1px solid var(--border); padding-bottom:28px; margin-bottom:8px;}
+  .eyebrow{font-size:12px; letter-spacing:.14em; text-transform:uppercase; color:var(--text-tertiary); font-weight:600;}
+  h1{font-size:34px; line-height:1.15; margin:.3em 0 .15em;}
+  .sub{color:var(--text-secondary); font-size:17px; margin:0;}
+  .meta{margin-top:18px; font-size:13px; color:var(--text-tertiary);}
+  .meta code{background:var(--bg3); padding:1px 6px; border-radius:5px;}
+
+  nav.toc{background:var(--bg2); border:1px solid var(--border); border-radius:14px; padding:18px 22px; margin:30px 0 12px;}
+  nav.toc h2{font-size:13px; text-transform:uppercase; letter-spacing:.1em; color:var(--text-tertiary); margin:0 0 10px;}
+  nav.toc ol{margin:0; padding-left:20px; columns:2; column-gap:34px;}
+  nav.toc li{margin:4px 0; break-inside:avoid;}
+  nav.toc a{color:var(--text-primary); text-decoration:none;}
+  nav.toc a:hover{color:var(--accent); text-decoration:underline;}
+  nav.toc .soon{color:var(--text-tertiary);}
+
+  section{padding-top:34px; margin-top:6px; border-top:1px solid var(--border);}
+  section:first-of-type{border-top:none;}
+  h2.sec{font-size:25px; margin:.2em 0 .5em; scroll-margin-top:20px;}
+  h3{font-size:18px; margin:1.5em 0 .4em;}
+  p{margin:.7em 0;}
+  a{color:var(--accent);}
+  code{font-family:var(--font-mono); font-size:.86em; background:var(--bg3); padding:1.5px 6px; border-radius:5px;}
+  strong{font-weight:650;}
+  ul,ol{padding-left:22px;}
+  li{margin:.3em 0;}
+
+  figure{margin:26px 0; background:var(--bg2); border:1px solid var(--border); border-radius:16px; padding:20px 20px 12px;}
+  figure svg{display:block; width:100%; height:auto;}
+  figcaption{font-size:13px; color:var(--text-tertiary); margin-top:10px; text-align:center;}
+
+  .callout{border:1px solid var(--border); border-left:4px solid var(--accent); background:var(--bg2); border-radius:10px; padding:14px 18px; margin:20px 0;}
+  .callout .k{font-weight:650; color:var(--accent);}
+
+  table{border-collapse:collapse; width:100%; margin:18px 0; font-size:14.5px;}
+  th,td{text-align:left; padding:9px 12px; border-bottom:1px solid var(--border); vertical-align:top;}
+  th{color:var(--text-secondary); font-weight:600; font-size:12.5px; text-transform:uppercase; letter-spacing:.04em;}
+  td code{white-space:nowrap;}
+
+  .pill{display:inline-block; font-size:11px; font-weight:600; padding:2px 9px; border-radius:20px; background:var(--accent-soft); color:var(--accent); vertical-align:middle; margin-left:8px;}
+  .pill.soon{background:var(--bg3); color:var(--text-tertiary);}
+
+  .changelog{font-size:14px; color:var(--text-secondary);}
+  .changelog li b{color:var(--text-primary);}
+  footer{margin-top:50px; padding-top:20px; border-top:1px solid var(--border); font-size:13px; color:var(--text-tertiary);}
+
+  /* ---- SVG diagram theming (replicates the chat widget host classes) ---- */
+  svg text{font-family:var(--font-sans);}
+  svg text.t{font-size:14px; fill:var(--text-primary);}
+  svg text.th{font-size:14px; font-weight:500; fill:var(--text-primary);}
+  svg text.ts{font-size:12px; fill:var(--text-secondary);}
+  svg rect, svg circle, svg ellipse{stroke-width:1.25;}
+
+  /* Light-mode ramps: fill=50  stroke=600  title=800  subtitle=600 */
+  rect.c-gray,.c-gray>rect,.c-gray>circle,.c-gray>ellipse{fill:#F1EFE8;stroke:#5F5E5A;}
+  .c-gray>text.t,.c-gray>text.th{fill:#444441;} .c-gray>text.ts{fill:#5F5E5A;}
+  rect.c-purple,.c-purple>rect,.c-purple>circle,.c-purple>ellipse{fill:#EEEDFE;stroke:#534AB7;}
+  .c-purple>text.t,.c-purple>text.th{fill:#3C3489;} .c-purple>text.ts{fill:#534AB7;}
+  rect.c-teal,.c-teal>rect,.c-teal>circle,.c-teal>ellipse{fill:#E1F5EE;stroke:#0F6E56;}
+  .c-teal>text.t,.c-teal>text.th{fill:#085041;} .c-teal>text.ts{fill:#0F6E56;}
+  rect.c-coral,.c-coral>rect,.c-coral>circle,.c-coral>ellipse{fill:#FAECE7;stroke:#993C1D;}
+  .c-coral>text.t,.c-coral>text.th{fill:#712B13;} .c-coral>text.ts{fill:#993C1D;}
+  rect.c-blue,.c-blue>rect,.c-blue>circle,.c-blue>ellipse{fill:#E6F1FB;stroke:#185FA5;}
+  .c-blue>text.t,.c-blue>text.th{fill:#0C447C;} .c-blue>text.ts{fill:#185FA5;}
+  rect.c-amber,.c-amber>rect,.c-amber>circle,.c-amber>ellipse{fill:#FAEEDA;stroke:#854F0B;}
+  .c-amber>text.t,.c-amber>text.th{fill:#633806;} .c-amber>text.ts{fill:#854F0B;}
+  rect.c-pink,.c-pink>rect,.c-pink>circle,.c-pink>ellipse{fill:#FBEAF0;stroke:#993556;}
+  .c-pink>text.t,.c-pink>text.th{fill:#72243E;} .c-pink>text.ts{fill:#993556;}
+  rect.c-green,.c-green>rect,.c-green>circle,.c-green>ellipse{fill:#EAF3DE;stroke:#3B6D11;}
+  .c-green>text.t,.c-green>text.th{fill:#27500A;} .c-green>text.ts{fill:#3B6D11;}
+  rect.c-red,.c-red>rect,.c-red>circle,.c-red>ellipse{fill:#FCEBEB;stroke:#A32D2D;}
+  .c-red>text.t,.c-red>text.th{fill:#791F1F;} .c-red>text.ts{fill:#A32D2D;}
+
+  /* Dark-mode ramps: fill=800  stroke=200  title=100  subtitle=200 */
+  @media (prefers-color-scheme: dark){
+    rect.c-gray,.c-gray>rect,.c-gray>circle,.c-gray>ellipse{fill:#444441;stroke:#B4B2A9;}
+    .c-gray>text.t,.c-gray>text.th{fill:#D3D1C7;} .c-gray>text.ts{fill:#B4B2A9;}
+    rect.c-purple,.c-purple>rect,.c-purple>circle,.c-purple>ellipse{fill:#3C3489;stroke:#AFA9EC;}
+    .c-purple>text.t,.c-purple>text.th{fill:#CECBF6;} .c-purple>text.ts{fill:#AFA9EC;}
+    rect.c-teal,.c-teal>rect,.c-teal>circle,.c-teal>ellipse{fill:#085041;stroke:#5DCAA5;}
+    .c-teal>text.t,.c-teal>text.th{fill:#9FE1CB;} .c-teal>text.ts{fill:#5DCAA5;}
+    rect.c-coral,.c-coral>rect,.c-coral>circle,.c-coral>ellipse{fill:#712B13;stroke:#F0997B;}
+    .c-coral>text.t,.c-coral>text.th{fill:#F5C4B3;} .c-coral>text.ts{fill:#F0997B;}
+    rect.c-blue,.c-blue>rect,.c-blue>circle,.c-blue>ellipse{fill:#0C447C;stroke:#85B7EB;}
+    .c-blue>text.t,.c-blue>text.th{fill:#B5D4F4;} .c-blue>text.ts{fill:#85B7EB;}
+    rect.c-amber,.c-amber>rect,.c-amber>circle,.c-amber>ellipse{fill:#633806;stroke:#EF9F27;}
+    .c-amber>text.t,.c-amber>text.th{fill:#FAC775;} .c-amber>text.ts{fill:#EF9F27;}
+    rect.c-pink,.c-pink>rect,.c-pink>circle,.c-pink>ellipse{fill:#72243E;stroke:#ED93B1;}
+    .c-pink>text.t,.c-pink>text.th{fill:#F4C0D1;} .c-pink>text.ts{fill:#ED93B1;}
+    rect.c-green,.c-green>rect,.c-green>circle,.c-green>ellipse{fill:#27500A;stroke:#97C459;}
+    .c-green>text.t,.c-green>text.th{fill:#C0DD97;} .c-green>text.ts{fill:#97C459;}
+    rect.c-red,.c-red>rect,.c-red>circle,.c-red>ellipse{fill:#791F1F;stroke:#F09595;}
+    .c-red>text.t,.c-red>text.th{fill:#F7C1C1;} .c-red>text.ts{fill:#F09595;}
+  }
+</style>
+</head>
+<body>
+<div class="wrap">
+
+<header class="hero">
+  <div class="eyebrow">Codebase exploration · living document</div>
+  <h1>Hermes Agent ☤ — Exploration Notes</h1>
+  <p class="sub">A working map of <a href="https://github.com/NousResearch/hermes-agent">NousResearch/hermes-agent</a> — the self-improving personal AI agent. Built up as we read the code together.</p>
+  <div class="meta">
+    Repo version <code>0.17.0</code> &nbsp;·&nbsp; ~5,400 files (~2,500 Python, ~950 TS/TSX) &nbsp;·&nbsp; Last updated <strong>2026-06-23</strong><br>
+    Official docs: <a href="https://hermes-agent.nousresearch.com/docs/">hermes-agent.nousresearch.com/docs</a>
+  </div>
+</header>
+
+<nav class="toc">
+  <h2>Contents</h2>
+  <ol>
+    <li><a href="#what">What Hermes is</a></li>
+    <li><a href="#principles">Two governing principles</a></li>
+    <li><a href="#caching">Prompt caching (the "why")</a></li>
+    <li><a href="#overview">Architecture overview</a></li>
+    <li><a href="#loop">The agent loop</a></li>
+    <li><a href="#tools">Tools &amp; toolsets</a></li>
+    <li><a href="#learning">The learning loop</a></li>
+    <li><a href="#cron">Cron / scheduling</a></li>
+    <li><a href="#sessions">Session storage (SessionDB)</a></li>
+    <li><a href="#trace">Request trace: sessions × learning</a></li>
+    <li class="soon"><a href="#gateway">Messaging gateway <span class="pill soon">later</span></a></li>
+  </ol>
+</nav>
+
+<section id="what">
+  <h2 class="sec">What Hermes is</h2>
+  <p><strong>Hermes Agent</strong> (by <a href="https://nousresearch.com">Nous Research</a>) is a personal AI agent with one defining idea: <strong>a single agent core that runs identically across many surfaces</strong> — a terminal CLI, a TUI, a messaging gateway (Telegram / Discord / Slack / ~20 platforms), an Electron desktop app, and an IDE integration (ACP).</p>
+  <p>Its headline feature is a <strong>closed learning loop</strong>: it writes skills from experience, improves them as it uses them, curates memory with periodic nudges, models who you are across sessions, and searches its own past conversations. It runs anywhere — a $5 VPS, a GPU cluster, or serverless backends that hibernate when idle.</p>
+  <p>It is extended primarily through <strong>plugins and skills</strong>, not by growing the core.</p>
+</section>
+
+<section id="principles">
+  <h2 class="sec">Two governing principles</h2>
+  <p>Almost every design decision in the repo traces back to two rules stated in <code>AGENTS.md</code>. They're the lens for reviewing any change — and they explain the shapes of every diagram below.</p>
+  <div class="callout">
+    <span class="k">1 · Per-conversation prompt caching is sacred.</span>
+    <p style="margin:.4em 0 0">A long conversation reuses a cached prefix every turn. Anything that mutates past context or rebuilds the system prompt mid-conversation invalidates that cache and multiplies the user's cost — so it is forbidden. The one exception is context compression.</p>
+  </div>
+  <div class="callout">
+    <span class="k">2 · The core is a "narrow waist"; capability lives at the edges.</span>
+    <p style="margin:.4em 0 0">Every tool ships on <em>every</em> API call, so adding a core tool is expensive. New capability is pushed outward along a <strong>Footprint Ladder</strong>: extend existing code → CLI command + skill → service-gated tool → plugin → MCP server → (last resort) a new core tool.</p>
+  </div>
+</section>
+
+<section id="caching">
+  <h2 class="sec">Prompt caching — the "why" behind the design</h2>
+  <p>Principle #1 ("caching is sacred") drives a surprising number of design decisions, so it's worth making concrete. A <strong>system prompt</strong> is Hermes's own hidden instructions to the model — "you are Hermes, here are your tools, here's the user's context" — sent before your message on every turn. It's the same for the whole conversation, and you never see it.</p>
+
+  <h3>First turn builds; later turns restore</h3>
+  <p>These are two different events that are easy to conflate. On the <strong>first</strong> turn there is nothing saved, so Hermes <em>builds</em> the system prompt and <em>saves</em> it to the session row. On every <strong>later</strong> turn it <em>reads that saved copy back</em> instead of rebuilding — so the bytes are identical. (There is nothing to "restore" on turn 1; turn 1 is what creates the saved copy.)</p>
+
+  <figure>
+    <svg width="100%" viewBox="0 0 680 300" role="img" xmlns="http://www.w3.org/2000/svg">
+    <title>First turn builds and saves the system prompt; later turns restore it from the database so the bytes match and the provider cache hits.</title>
+    <desc>On turn one the agent builds the system prompt from scratch and saves it to the sessions.system_prompt column; the cache is cold. On turns two and later the agent reads back the exact saved prompt and reuses it, so the provider cache hits.</desc>
+    <defs><marker id="arrowG" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse"><path d="M2 1L8 5L2 9" fill="none" stroke="context-stroke" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></marker></defs>
+    <g class="c-purple"><rect x="40" y="50" width="260" height="72" rx="10"/><text class="th" x="170" y="82" text-anchor="middle">Turn 1 (first message)</text><text class="ts" x="170" y="102" text-anchor="middle">builds the prompt · cache is cold</text></g>
+    <g class="c-teal"><rect x="40" y="160" width="260" height="72" rx="10"/><text class="th" x="170" y="192" text-anchor="middle">Turns 2, 3, … (later)</text><text class="ts" x="170" y="212" text-anchor="middle">reuses saved prompt · cache HIT</text></g>
+    <g class="c-gray"><rect x="430" y="104" width="210" height="74" rx="10"/><text class="th" x="535" y="136" text-anchor="middle">sessions.system_prompt</text><text class="ts" x="535" y="156" text-anchor="middle">the exact prompt bytes</text></g>
+    <line x1="300" y1="92" x2="428" y2="128" stroke="#888780" stroke-width="1.5" marker-end="url(#arrowG)"/>
+    <text class="ts" x="356" y="104">save (write)</text>
+    <line x1="428" y1="156" x2="300" y2="194" stroke="#888780" stroke-width="1.5" marker-end="url(#arrowG)"/>
+    <text class="ts" x="350" y="184">restore (read)</text>
+    <g class="c-blue"><rect x="40" y="252" width="600" height="40" rx="8"/><text class="ts" x="340" y="276" text-anchor="middle">Restore only happens on turns 2+. Turn 1 has nothing to pull — it is what creates the saved prompt.</text></g>
+    </svg>
+    <figcaption>The producer/consumer split: turn 1 produces the saved prompt; every later turn consumes it.</figcaption>
+  </figure>
+
+  <h3>Why only the prefix, and how much?</h3>
+  <p>An LLM reads the prompt left → right, and the work it does for any token depends on <em>every token before it</em>. So the provider can reuse saved work for token #500 only if tokens #1–#499 are byte-identical to last time. The instant one early byte differs, everything after it must be recomputed. That's why caching can only be a <strong>prefix</strong> — an unbroken run from the very start. "How much" is cached = the <strong>longest run, from the start, identical to the previous request</strong> (up to the provider's limit). Because each turn appends to the <em>end</em>, a bigger share of the prompt is cached as the conversation grows — which is what keeps long conversations cheap.</p>
+
+  <figure>
+    <svg width="100%" viewBox="0 0 680 278" role="img" xmlns="http://www.w3.org/2000/svg">
+    <title>Prompt caching reuses the prefix — the run of identical tokens from the start. The stable system prompt and history are cached; the newest message is computed.</title>
+    <desc>A prompt is read left to right. The system prompt and conversation history at the start are identical to the previous request, so they form a cached prefix that is reused cheaply. The newest message is new and must be computed.</desc>
+    <text class="ts" x="40" y="38">The model reads left → right; each token depends on every token before it. Only a prefix can be reused.</text>
+    <g class="c-teal"><rect x="40" y="60" width="150" height="58" rx="4"/><text class="th" x="115" y="84" text-anchor="middle">System prompt</text><text class="ts" x="115" y="103" text-anchor="middle">stable</text></g>
+    <g class="c-teal"><rect x="190" y="60" width="300" height="58" rx="4"/><text class="th" x="340" y="84" text-anchor="middle">Conversation history</text><text class="ts" x="340" y="103" text-anchor="middle">grows by appending →</text></g>
+    <g class="c-coral"><rect x="490" y="60" width="150" height="58" rx="4"/><text class="th" x="565" y="84" text-anchor="middle">Newest message</text><text class="ts" x="565" y="103" text-anchor="middle">+ memory / skills</text></g>
+    <path d="M40 132 v6 H490 v-6" fill="none" stroke="#0F6E56" stroke-width="1.5"/>
+    <text class="ts" x="265" y="158" text-anchor="middle">cached prefix → reused, ~10% the cost</text>
+    <path d="M490 132 v6 H640 v-6" fill="none" stroke="#993C1D" stroke-width="1.5"/>
+    <text class="ts" x="565" y="158" text-anchor="middle">new → full cost</text>
+    <text class="ts" x="40" y="192">How much is cached = the longest run identical to the previous request (up to the provider's limit).</text>
+    <g class="c-blue"><rect x="40" y="210" width="600" height="50" rx="8"/><text class="th" x="340" y="232" text-anchor="middle">Why Hermes orders it this way</text><text class="ts" x="340" y="250" text-anchor="middle">stable prompt first · new content appended last — so the cached prefix stays byte-identical</text></g>
+    </svg>
+    <figcaption>Caching is a prefix property. One changed byte early invalidates everything after it — so stable content goes first, dynamic content goes last.</figcaption>
+  </figure>
+
+  <h3>Provider does the caching; the client earns the hit</h3>
+  <p>Caching is a provider-side feature, and most big providers offer it — but not identically. <strong>OpenAI</strong> caches prefixes automatically. <strong>Anthropic</strong> does <em>not</em> — you must explicitly mark <code>cache_control</code> breakpoints, or you get zero caching (Hermes does this via <code>apply_anthropic_cache_control</code>, <code>conversation_loop.py:817</code>, marking system + last 3 messages). Other endpoints vary. The deeper point: the provider can only reuse the cache if the incoming prefix <em>matches</em> — and the provider has no control over what bytes you send. <strong>Only the client can keep the prefix stable.</strong> If Hermes rebuilt the prompt slightly differently each turn, the provider's cache would sit there and miss every time.</p>
+
+  <figure>
+    <svg width="100%" viewBox="0 0 680 286" role="img" xmlns="http://www.w3.org/2000/svg">
+    <title>Division of labor in prefix caching: the client (Hermes) sends an identical prefix; the provider stores and reuses it. The cache lives on the provider but hits are earned on the client.</title>
+    <desc>Hermes on the client side sends an identical prefix each turn, restores the prompt and appends new content last, and marks Anthropic cache breakpoints. The provider side stores the processed prefix and reuses it only if the incoming bytes match.</desc>
+    <defs><marker id="arrowH" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse"><path d="M2 1L8 5L2 9" fill="none" stroke="context-stroke" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></marker></defs>
+    <g class="c-teal"><rect x="40" y="56" width="270" height="140" rx="10"/><text class="th" x="175" y="84" text-anchor="middle">Client side — Hermes</text><text class="ts" x="56" y="112">• send identical prefix each turn</text><text class="ts" x="56" y="138">• restore prompt · append new last</text><text class="ts" x="56" y="164">• mark Anthropic cache breakpoints</text></g>
+    <g class="c-gray"><rect x="370" y="56" width="270" height="140" rx="10"/><text class="th" x="505" y="84" text-anchor="middle">Provider side</text><text class="ts" x="386" y="112">• stores the processed prefix</text><text class="ts" x="386" y="138">• reuses it only if bytes match</text><text class="ts" x="386" y="164">• Anthropic: only marked blocks</text></g>
+    <text class="ts" x="340" y="116" text-anchor="middle">the request</text>
+    <line x1="312" y1="126" x2="368" y2="126" stroke="#888780" stroke-width="1.5" marker-end="url(#arrowH)"/>
+    <g class="c-blue"><rect x="40" y="214" width="600" height="54" rx="8"/><text class="th" x="340" y="238" text-anchor="middle">The cache lives on the provider — but hits are earned on the client</text><text class="ts" x="340" y="256" text-anchor="middle">send a byte-identical prefix and the provider's cache does the rest</text></g>
+    </svg>
+    <figcaption>Anthropic caching being available is necessary but not sufficient; Hermes earning the hit (stable prefix + breakpoints) is the half that lives in this codebase.</figcaption>
+  </figure>
+
+  <p>This is why so many decisions elsewhere in the doc read "injected into the user message, not the system prompt": memory context, skill bodies, and plugin context all go at the <em>end</em> precisely so the prefix never changes. Context compression is the one sanctioned exception — it rewrites history on purpose, and is therefore done deliberately and rarely.</p>
+</section>
+
+<section id="overview">
+  <h2 class="sec">Architecture overview</h2>
+  <p>The mental model: many <strong>surfaces</strong> on top, exactly <strong>one core</strong>, and a wide fan of <strong>capabilities and external services</strong> at the edges. The core (<code>run_agent.py</code>) talks to a session store and to LLM providers, exposes a tool layer, and everything else plugs in around it.</p>
+
+  <figure>
+    <svg width="100%" viewBox="0 0 680 482" role="img" xmlns="http://www.w3.org/2000/svg">
+    <title>Hermes Agent architecture: many surfaces over one agent core, with capabilities and external services at the edges</title>
+    <desc>Surfaces (CLI, TUI, Gateway, Desktop, IDE) all feed one AIAgent conversation loop, which talks to a SessionDB and LLM providers, exposes a tool layer, and fans out to capabilities (skills, plugins, MCP, memory, cron) and pluggable execution backends.</desc>
+    <defs><marker id="arrowA" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse"><path d="M2 1L8 5L2 9" fill="none" stroke="context-stroke" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></marker></defs>
+
+    <text class="ts" x="40" y="40">Surfaces — one agent core, many front-ends</text>
+    <g class="c-gray"><rect x="40" y="50" width="112" height="46" rx="8"/><text class="th" x="96" y="70" text-anchor="middle">CLI</text><text class="ts" x="96" y="86" text-anchor="middle">terminal</text></g>
+    <g class="c-gray"><rect x="162" y="50" width="112" height="46" rx="8"/><text class="th" x="218" y="70" text-anchor="middle">TUI</text><text class="ts" x="218" y="86" text-anchor="middle">Ink + React</text></g>
+    <g class="c-gray"><rect x="284" y="50" width="112" height="46" rx="8"/><text class="th" x="340" y="70" text-anchor="middle">Gateway</text><text class="ts" x="340" y="86" text-anchor="middle">chat platforms</text></g>
+    <g class="c-gray"><rect x="406" y="50" width="112" height="46" rx="8"/><text class="th" x="462" y="70" text-anchor="middle">Desktop</text><text class="ts" x="462" y="86" text-anchor="middle">Electron</text></g>
+    <g class="c-gray"><rect x="528" y="50" width="112" height="46" rx="8"/><text class="th" x="584" y="70" text-anchor="middle">IDE</text><text class="ts" x="584" y="86" text-anchor="middle">ACP server</text></g>
+
+    <line x1="96" y1="96" x2="96" y2="114" stroke="#888780" stroke-width="1.5"/>
+    <line x1="218" y1="96" x2="218" y2="114" stroke="#888780" stroke-width="1.5"/>
+    <line x1="340" y1="96" x2="340" y2="114" stroke="#888780" stroke-width="1.5"/>
+    <line x1="462" y1="96" x2="462" y2="114" stroke="#888780" stroke-width="1.5"/>
+    <line x1="584" y1="96" x2="584" y2="114" stroke="#888780" stroke-width="1.5"/>
+    <line x1="96" y1="114" x2="584" y2="114" stroke="#888780" stroke-width="1.5"/>
+    <line x1="340" y1="114" x2="340" y2="129" stroke="#888780" stroke-width="1.5" marker-end="url(#arrowA)"/>
+
+    <g class="c-gray"><rect x="40" y="130" width="112" height="52" rx="8"/><text class="th" x="96" y="152" text-anchor="middle">SessionDB</text><text class="ts" x="96" y="168" text-anchor="middle">SQLite + FTS5</text></g>
+    <g class="c-purple"><rect x="170" y="130" width="340" height="52" rx="10"/><text class="th" x="340" y="152" text-anchor="middle">AIAgent — conversation loop</text><text class="ts" x="340" y="168" text-anchor="middle">run_agent.py · narrow waist</text></g>
+    <g class="c-coral"><rect x="528" y="130" width="112" height="52" rx="8"/><text class="th" x="584" y="152" text-anchor="middle">Providers</text><text class="ts" x="584" y="168" text-anchor="middle">200+ models</text></g>
+
+    <line x1="152" y1="156" x2="170" y2="156" stroke="#888780" stroke-width="1.5" marker-start="url(#arrowA)" marker-end="url(#arrowA)"/>
+    <line x1="510" y1="156" x2="528" y2="156" stroke="#888780" stroke-width="1.5" marker-start="url(#arrowA)" marker-end="url(#arrowA)"/>
+    <line x1="340" y1="182" x2="340" y2="212" stroke="#888780" stroke-width="1.5" marker-start="url(#arrowA)" marker-end="url(#arrowA)"/>
+
+    <g class="c-teal"><rect x="200" y="212" width="280" height="46" rx="8"/><text class="th" x="340" y="232" text-anchor="middle">Tools &amp; toolsets</text><text class="ts" x="340" y="248" text-anchor="middle">sent on every API call</text></g>
+
+    <line x1="340" y1="258" x2="340" y2="298" stroke="#888780" stroke-width="1.5" marker-end="url(#arrowA)"/>
+
+    <text class="ts" x="40" y="288">Capability lives at the edges</text>
+    <g class="c-teal"><rect x="40" y="300" width="112" height="46" rx="8"/><text class="th" x="96" y="320" text-anchor="middle">Skills</text><text class="ts" x="96" y="336" text-anchor="middle">self-improving</text></g>
+    <g class="c-teal"><rect x="162" y="300" width="112" height="46" rx="8"/><text class="th" x="218" y="320" text-anchor="middle">Plugins</text><text class="ts" x="218" y="336" text-anchor="middle">extend core</text></g>
+    <g class="c-teal"><rect x="284" y="300" width="112" height="46" rx="8"/><text class="th" x="340" y="320" text-anchor="middle">MCP</text><text class="ts" x="340" y="336" text-anchor="middle">external tools</text></g>
+    <g class="c-teal"><rect x="406" y="300" width="112" height="46" rx="8"/><text class="th" x="462" y="320" text-anchor="middle">Memory</text><text class="ts" x="462" y="336" text-anchor="middle">cross-session</text></g>
+    <g class="c-teal"><rect x="528" y="300" width="112" height="46" rx="8"/><text class="th" x="584" y="320" text-anchor="middle">Cron</text><text class="ts" x="584" y="336" text-anchor="middle">scheduled jobs</text></g>
+
+    <line x1="340" y1="346" x2="340" y2="382" stroke="#888780" stroke-width="1.5" marker-end="url(#arrowA)"/>
+
+    <text class="ts" x="40" y="372">Runs anywhere — execution backends</text>
+    <g class="c-coral"><rect x="40" y="384" width="600" height="46" rx="8"/><text class="th" x="340" y="404" text-anchor="middle">Terminal / execution backends</text><text class="ts" x="340" y="420" text-anchor="middle">local · docker · ssh · modal · daytona · singularity</text></g>
+
+    <rect class="c-gray" x="40" y="448" width="12" height="12" rx="3"/><text class="ts" x="58" y="458">surfaces &amp; state</text>
+    <rect class="c-purple" x="170" y="448" width="12" height="12" rx="3"/><text class="ts" x="188" y="458">core</text>
+    <rect class="c-teal" x="250" y="448" width="12" height="12" rx="3"/><text class="ts" x="268" y="458">tools &amp; abilities</text>
+    <rect class="c-coral" x="400" y="448" width="12" height="12" rx="3"/><text class="ts" x="418" y="458">external services</text>
+    </svg>
+    <figcaption>The narrow-waist architecture. Surfaces are interchangeable; the core is the one expensive thing; capability is added at the edges.</figcaption>
+  </figure>
+
+  <h3>The load-bearing files</h3>
+  <table>
+    <tr><th>File</th><th>Role</th></tr>
+    <tr><td><code>run_agent.py</code></td><td><code>AIAgent</code> class — the core conversation loop (~12k LOC). A thin forwarder to <code>agent/conversation_loop.py</code>.</td></tr>
+    <tr><td><code>model_tools.py</code></td><td>Tool orchestration: <code>discover_builtin_tools()</code>, <code>get_tool_definitions()</code>, <code>handle_function_call()</code>.</td></tr>
+    <tr><td><code>toolsets.py</code></td><td>Toolset definitions and the <code>_HERMES_CORE_TOOLS</code> always-on list.</td></tr>
+    <tr><td><code>cli.py</code></td><td><code>HermesCLI</code> — interactive terminal orchestrator (~11k LOC).</td></tr>
+    <tr><td><code>hermes_state.py</code></td><td><code>SessionDB</code> — SQLite session store with FTS5 full-text search.</td></tr>
+    <tr><td><code>gateway/</code></td><td>Messaging hub: <code>run.py</code> + <code>session.py</code> + a per-platform adapter under <code>platforms/</code>.</td></tr>
+    <tr><td><code>agent/</code></td><td>Internals: provider adapters, memory, compression, curator, the real loop.</td></tr>
+    <tr><td><code>tools/</code> &amp; <code>tools/environments/</code></td><td>Tool implementations (auto-discovered) and the terminal backends.</td></tr>
+  </table>
+</section>
+
+<section id="loop">
+  <h2 class="sec">The agent loop — one turn, start to finish</h2>
+  <p><code>AIAgent.run_conversation()</code> (<code>run_agent.py:5302</code>) is a thin forwarder; the real machine is <code>agent/conversation_loop.py</code> (~4,600 lines). One "turn" (one user message → one final reply) has three phases: <strong>pre-turn setup → the tool-calling loop → finalize</strong>.</p>
+
+  <figure>
+    <svg width="100%" viewBox="0 0 680 558" role="img" xmlns="http://www.w3.org/2000/svg">
+    <title>The Hermes agent turn loop: pre-turn setup, a tool-calling loop that repeats until the model stops calling tools, then finalize</title>
+    <desc>Pre-turn setup restores the cached system prompt and prefetches memory. The loop guards budget, builds the request with cache control, calls the model, and branches: if the model returns tool calls they execute and the loop repeats; otherwise the final response breaks out and the turn is finalized with persistence, memory sync, and a skill nudge.</desc>
+    <defs><marker id="arrowB" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse"><path d="M2 1L8 5L2 9" fill="none" stroke="context-stroke" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></marker></defs>
+
+    <g class="c-gray"><rect x="160" y="46" width="340" height="50" rx="10"/><text class="th" x="330" y="68" text-anchor="middle">Pre-turn setup</text><text class="ts" x="330" y="84" text-anchor="middle">system prompt · prefetch · compress</text></g>
+    <line x1="330" y1="96" x2="330" y2="120" stroke="#888780" stroke-width="1.5" marker-end="url(#arrowB)"/>
+
+    <g class="c-gray"><rect x="220" y="122" width="220" height="46" rx="8"/><text class="th" x="330" y="142" text-anchor="middle">Guard checks</text><text class="ts" x="330" y="158" text-anchor="middle">interrupt · budget</text></g>
+    <line x1="330" y1="168" x2="330" y2="188" stroke="#888780" stroke-width="1.5" marker-end="url(#arrowB)"/>
+
+    <g class="c-teal"><rect x="220" y="190" width="220" height="46" rx="8"/><text class="th" x="330" y="210" text-anchor="middle">Build request</text><text class="ts" x="330" y="226" text-anchor="middle">messages + cache control</text></g>
+    <line x1="330" y1="236" x2="330" y2="256" stroke="#888780" stroke-width="1.5" marker-end="url(#arrowB)"/>
+
+    <g class="c-purple"><rect x="220" y="258" width="220" height="46" rx="8"/><text class="th" x="330" y="278" text-anchor="middle">Call model</text><text class="ts" x="330" y="294" text-anchor="middle">stream tokens</text></g>
+    <line x1="330" y1="304" x2="330" y2="324" stroke="#888780" stroke-width="1.5" marker-end="url(#arrowB)"/>
+
+    <g class="c-gray"><rect x="220" y="326" width="220" height="46" rx="8"/><text class="th" x="330" y="353" text-anchor="middle">Tool calls returned?</text></g>
+
+    <g class="c-teal"><rect x="470" y="326" width="150" height="46" rx="8"/><text class="th" x="545" y="346" text-anchor="middle">Execute tools</text><text class="ts" x="545" y="362" text-anchor="middle">run + append results</text></g>
+    <line x1="440" y1="349" x2="468" y2="349" stroke="#888780" stroke-width="1.5" marker-end="url(#arrowB)"/>
+    <text class="ts" x="454" y="343">yes</text>
+    <path d="M545 326 L545 213 L442 213" fill="none" stroke="#888780" stroke-width="1.5" marker-end="url(#arrowB)"/>
+    <text class="ts" x="552" y="288">repeat</text>
+
+    <line x1="330" y1="372" x2="330" y2="398" stroke="#888780" stroke-width="1.5" marker-end="url(#arrowB)"/>
+    <text class="ts" x="338" y="390">no</text>
+
+    <g class="c-coral"><rect x="220" y="400" width="220" height="46" rx="8"/><text class="th" x="330" y="420" text-anchor="middle">Final response</text><text class="ts" x="330" y="436" text-anchor="middle">no tool calls → break</text></g>
+    <line x1="330" y1="446" x2="330" y2="466" stroke="#888780" stroke-width="1.5" marker-end="url(#arrowB)"/>
+
+    <g class="c-teal"><rect x="160" y="468" width="340" height="50" rx="10"/><text class="th" x="330" y="490" text-anchor="middle">Finalize turn</text><text class="ts" x="330" y="506" text-anchor="middle">persist · memory sync · skill nudge</text></g>
+
+    <rect class="c-gray" x="40" y="536" width="12" height="12" rx="3"/><text class="ts" x="58" y="546">setup &amp; control</text>
+    <rect class="c-purple" x="180" y="536" width="12" height="12" rx="3"/><text class="ts" x="198" y="546">model call</text>
+    <rect class="c-teal" x="290" y="536" width="12" height="12" rx="3"/><text class="ts" x="308" y="546">tools &amp; finalize</text>
+    <rect class="c-coral" x="430" y="536" width="12" height="12" rx="3"/><text class="ts" x="448" y="546">turn exit</text>
+    </svg>
+    <figcaption>One agent turn. The happy path is ~20 lines; most of the 4,600 lines are defensive recovery around it.</figcaption>
+  </figure>
+
+  <h3>Reading the diagram against the code</h3>
+  <ul>
+    <li><strong>The <code>while</code> condition</strong> (<code>conversation_loop.py:589</code>): <code>while (api_call_count &lt; max_iterations and iteration_budget.remaining &gt; 0) or _budget_grace_call</code>. Two independent limits — a hard iteration cap (default 90) <em>and</em> an <code>IterationBudget</code> — plus a one-turn <strong>grace call</strong> so an exhausted budget still lets the model wrap up cleanly.</li>
+    <li><strong>Interrupt-first.</strong> Every iteration checks <code>_interrupt_requested</code> (<code>:594</code>) and breaks — this is what lets a new Telegram message or Ctrl+C stop the agent immediately. A <code>/steer</code> drain (<code>:662</code>) injects mid-flight guidance by appending to the last <em>tool-result</em> message (never a new user message, which would break role alternation).</li>
+    <li><strong>Cache control is applied at request-build time, not stored.</strong> The system prompt is restored from the prior turn's cached copy (<code>_restore_or_build_system_prompt</code>, <code>:255</code>) so the Anthropic prefix matches byte-for-byte. The file is full of log lines whose only job is to make a silent cache miss <em>visible</em>. Principle&nbsp;#1 as real code.</li>
+    <li><strong>The branch</strong> (<code>:3812</code>): if <code>assistant_message.tool_calls</code> → <code>_execute_tool_calls(...)</code> (<code>:4079</code>), append results, loop again. Otherwise <code>final_response = assistant_message.content</code> (<code>:4180</code>) and <code>break</code>.</li>
+    <li><strong>Tool execution can be concurrent.</strong> <code>_execute_tool_calls</code> (<code>run_agent.py:5188</code>) sends a safe multi-tool batch to <code>execute_tool_calls_concurrent</code> (<code>agent/tool_executor.py</code>), else runs sequentially. A guardrail can cleanly halt the turn instead of crashing.</li>
+    <li><strong>Finalize</strong> (<code>:4576</code> → <code>agent/turn_finalizer.finalize_turn</code>) is where the learning loop hooks in: persist the session, run memory <code>sync_all</code>, and fire the <strong>skill nudge</strong> if enough tool-iterations passed without using <code>skill_manage</code> (<code>_iters_since_skill</code>, incremented at <code>:648</code>).</li>
+  </ul>
+  <p><strong>Takeaway:</strong> most of the loop is <em>defensive</em> — empty-response retries, message-alternation repair, compression-on-overflow, truncated tool-call recovery. The machinery exists to keep a long-lived, cache-sensitive conversation from wedging.</p>
+</section>
+
+<section id="tools">
+  <h2 class="sec">Tools &amp; toolsets — the narrow waist in practice</h2>
+  <p>When the loop hits a tool call it lands in <code>handle_function_call()</code> (<code>model_tools.py:901</code>). Three files cooperate: <code>tools/registry.py</code> is the system of record, <code>toolsets.py</code> decides <em>which</em> tools are visible, and <code>model_tools.py</code> orchestrates discovery and dispatch.</p>
+
+  <figure>
+    <svg width="100%" viewBox="0 0 680 470" role="img" xmlns="http://www.w3.org/2000/svg">
+    <title>Hermes tool system: tools self-register into a registry, toolsets and check_fn gates decide which schemas the model sees, and a tool call flows through middleware and hooks before dispatch.</title>
+    <desc>At import, each tool file calls registry.register. get_tool_definitions resolves enabled toolsets, applies check_fn availability gates, and returns schemas sent on every API call. A tool call from the model passes through the tool-search bridge, middleware, a pre-tool-call hook and approval gate, then registry.dispatch runs the handler, errors are sanitized, and post hooks observe the result.</desc>
+    <defs><marker id="arrowC" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse"><path d="M2 1L8 5L2 9" fill="none" stroke="context-stroke" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></marker></defs>
+
+    <text class="ts" x="40" y="38">Build-time: discovery &amp; gating (which tools the model even sees)</text>
+    <g class="c-teal"><rect x="40" y="48" width="150" height="50" rx="8"/><text class="th" x="115" y="70" text-anchor="middle">tools/*.py</text><text class="ts" x="115" y="86" text-anchor="middle">registry.register()</text></g>
+    <g class="c-teal"><rect x="226" y="48" width="150" height="50" rx="8"/><text class="th" x="301" y="70" text-anchor="middle">ToolRegistry</text><text class="ts" x="301" y="86" text-anchor="middle">name·schema·handler</text></g>
+    <g class="c-gray"><rect x="412" y="48" width="228" height="50" rx="8"/><text class="th" x="526" y="70" text-anchor="middle">get_tool_definitions()</text><text class="ts" x="526" y="86" text-anchor="middle">resolve toolsets · check_fn gate</text></g>
+    <line x1="190" y1="73" x2="224" y2="73" stroke="#888780" stroke-width="1.5" marker-end="url(#arrowC)"/>
+    <line x1="376" y1="73" x2="410" y2="73" stroke="#888780" stroke-width="1.5" marker-end="url(#arrowC)"/>
+    <line x1="526" y1="98" x2="526" y2="120" stroke="#888780" stroke-width="1.5" marker-end="url(#arrowC)"/>
+    <g class="c-purple"><rect x="412" y="122" width="228" height="44" rx="8"/><text class="th" x="526" y="142" text-anchor="middle">Schemas → every API call</text><text class="ts" x="526" y="158" text-anchor="middle">core inline · rest behind tool_search</text></g>
+
+    <text class="ts" x="40" y="206">Run-time: handle_function_call() — one tool call, end to end</text>
+    <g class="c-purple"><rect x="40" y="216" width="150" height="46" rx="8"/><text class="th" x="115" y="236" text-anchor="middle">Model emits call</text><text class="ts" x="115" y="252" text-anchor="middle">name + args</text></g>
+    <line x1="115" y1="262" x2="115" y2="286" stroke="#888780" stroke-width="1.5" marker-end="url(#arrowC)"/>
+
+    <g class="c-gray"><rect x="40" y="288" width="600" height="46" rx="8"/><text class="th" x="340" y="308" text-anchor="middle">Pre-dispatch: tool_search bridge → middleware → pre-tool-call hook → approval gate</text><text class="ts" x="340" y="324" text-anchor="middle">a plugin or approval can block here</text></g>
+    <line x1="340" y1="334" x2="340" y2="356" stroke="#888780" stroke-width="1.5" marker-end="url(#arrowC)"/>
+
+    <g class="c-teal"><rect x="220" y="358" width="240" height="46" rx="8"/><text class="th" x="340" y="378" text-anchor="middle">registry.dispatch()</text><text class="ts" x="340" y="394" text-anchor="middle">run handler · async bridge · sanitize</text></g>
+    <line x1="460" y1="381" x2="520" y2="381" stroke="#888780" stroke-width="1.5" marker-end="url(#arrowC)"/>
+    <g class="c-gray"><rect x="522" y="358" width="118" height="46" rx="8"/><text class="th" x="581" y="378" text-anchor="middle">post hooks</text><text class="ts" x="581" y="394" text-anchor="middle">observe result</text></g>
+    <line x1="220" y1="381" x2="160" y2="381" stroke="#888780" stroke-width="1.5" marker-end="url(#arrowC)"/>
+    <g class="c-coral"><rect x="40" y="358" width="118" height="46" rx="8"/><text class="th" x="99" y="378" text-anchor="middle">JSON result</text><text class="ts" x="99" y="394" text-anchor="middle">back to loop</text></g>
+
+    <rect class="c-teal" x="40" y="436" width="12" height="12" rx="3"/><text class="ts" x="58" y="446">tool machinery</text>
+    <rect class="c-gray" x="180" y="436" width="12" height="12" rx="3"/><text class="ts" x="198" y="446">gates &amp; hooks</text>
+    <rect class="c-purple" x="310" y="436" width="12" height="12" rx="3"/><text class="ts" x="328" y="446">model boundary</text>
+    <rect class="c-coral" x="450" y="436" width="12" height="12" rx="3"/><text class="ts" x="468" y="446">result</text>
+    </svg>
+    <figcaption>Top: tools self-register and get gated into the schema list. Bottom: one tool call passing through middleware, hooks, and approval before the handler runs.</figcaption>
+  </figure>
+
+  <h3>Build-time — discovery &amp; gating</h3>
+  <p>Every file in <code>tools/</code> calls <code>registry.register(name, toolset, schema, handler, check_fn=…)</code> at import (<code>tools/registry.py:234</code>). <code>discover_builtin_tools()</code> AST-scans the directory, so nothing is manually listed. Then <code>get_tool_definitions()</code> resolves the session's <code>enabled_toolsets</code>, subtracts <code>disabled_toolsets</code>, and runs each tool's <strong><code>check_fn</code></strong> (30-second cached). A tool whose gate returns false is simply <em>absent</em> from the schema list — that's how <code>terminal</code> only appears when a backend is reachable, Home-Assistant tools only when a token is set, and so on.</p>
+  <p><strong>Why this is the narrow waist:</strong> the resolved schemas are sent on <em>every</em> API call, so the schema list is the cost surface. <code>_HERMES_CORE_TOOLS</code> (<code>toolsets.py:31</code>) is the always-on set (terminal, file, web, browser, vision, skills…). Everything else is gated, and when the deferred surface grows it's hidden behind a <code>tool_search / tool_describe / tool_call</code> bridge so it doesn't bloat the prompt.</p>
+
+  <h3>Run-time — one tool call, end to end</h3>
+  <p>A tool call passes, in order, through: the <strong>tool-search bridge</strong> (unwraps <code>tool_call</code> to the real name so hooks see it) → <strong>request middleware</strong> (plugins may rewrite args) → the <strong>pre-tool-call hook</strong> + <strong>approval gate</strong> (a plugin or a user approval can <em>block</em> it — dangerous-command confirmation lives here) → <code>registry.dispatch()</code> runs the handler. Async handlers are bridged onto a persistent event loop (<code>_run_async</code>) to dodge "event loop is closed" with cached httpx clients; exceptions are <strong>sanitized</strong> into <code>{"error": …}</code> so a crash can't poison the conversation; post-hooks observe; a JSON string returns to the loop.</p>
+
+  <h3>Terminal backends</h3>
+  <p>Everything under <code>tools/environments/</code> shares a <code>BaseEnvironment</code> ABC with a spawn-per-command model. <code>TERMINAL_ENV</code> config selects the substrate — <code>local</code> (default), <code>docker</code>, <code>ssh</code>, <code>modal</code> / <code>managed_modal</code>, <code>singularity</code>, or <code>daytona</code>. Same <code>terminal</code> tool, swappable execution backend — which is what lets the agent "run anywhere," including serverless backends that hibernate when idle.</p>
+</section>
+
+<section id="learning">
+  <h2 class="sec">The learning loop — what makes Hermes "self-improving"</h2>
+  <p>This is the headline claim, and it's a genuine closed loop across four subsystems. The insight that ties them together: <strong>everything learned is re-injected as user messages</strong> (never the system prompt), so the loop never breaks prompt caching.</p>
+
+  <figure>
+    <svg width="100%" viewBox="0 0 680 464" role="img" xmlns="http://www.w3.org/2000/svg">
+    <title>Hermes closed learning loop: do work, capture skills and memory, store and curate, recall on future turns — all injected cache-safely.</title>
+    <desc>A four-phase clockwise cycle. Phase 1 do the work; phase 2 capture via /learn, auto-nudge and memory sync; phase 3 store and curate skills, memory and SessionDB with a background curator; phase 4 recall via prefetch, skills and FTS5 search. Recall is injected as user messages in memory-context fences, never the system prompt, to preserve prompt caching.</desc>
+    <defs><marker id="arrowD" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse"><path d="M2 1L8 5L2 9" fill="none" stroke="context-stroke" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></marker></defs>
+
+    <g class="c-purple"><rect x="60" y="58" width="250" height="68" rx="10"/><text class="th" x="185" y="90" text-anchor="middle">1 · Do the work</text><text class="ts" x="185" y="108" text-anchor="middle">complete a task or turn</text></g>
+    <g class="c-teal"><rect x="370" y="58" width="250" height="68" rx="10"/><text class="th" x="495" y="90" text-anchor="middle">2 · Capture</text><text class="ts" x="495" y="108" text-anchor="middle">/learn · auto-nudge · sync</text></g>
+    <g class="c-teal"><rect x="370" y="206" width="250" height="68" rx="10"/><text class="th" x="495" y="238" text-anchor="middle">3 · Store &amp; curate</text><text class="ts" x="495" y="256" text-anchor="middle">skills · memory · SessionDB</text></g>
+    <g class="c-teal"><rect x="60" y="206" width="250" height="68" rx="10"/><text class="th" x="185" y="238" text-anchor="middle">4 · Recall</text><text class="ts" x="185" y="256" text-anchor="middle">prefetch · skills · FTS5</text></g>
+
+    <line x1="310" y1="92" x2="368" y2="92" stroke="#888780" stroke-width="1.5" marker-end="url(#arrowD)"/>
+    <line x1="495" y1="126" x2="495" y2="204" stroke="#888780" stroke-width="1.5" marker-end="url(#arrowD)"/>
+    <line x1="370" y1="240" x2="312" y2="240" stroke="#888780" stroke-width="1.5" marker-end="url(#arrowD)"/>
+    <line x1="185" y1="206" x2="185" y2="128" stroke="#888780" stroke-width="1.5" marker-end="url(#arrowD)"/>
+    <text class="ts" x="340" y="170" text-anchor="middle">each turn feeds the next</text>
+
+    <g class="c-gray"><rect x="370" y="300" width="250" height="54" rx="8"/><text class="th" x="495" y="322" text-anchor="middle">Curator (background)</text><text class="ts" x="495" y="338" text-anchor="middle">prune · consolidate · back up</text></g>
+    <line x1="495" y1="300" x2="495" y2="276" stroke="#888780" stroke-width="1.5" marker-end="url(#arrowD)"/>
+
+    <g class="c-blue"><rect x="60" y="372" width="560" height="48" rx="8"/><text class="th" x="340" y="394" text-anchor="middle">Cache-safe by construction</text><text class="ts" x="340" y="410" text-anchor="middle">recall injected as user messages in &lt;memory-context&gt;, never the system prompt</text></g>
+
+    <rect class="c-purple" x="60" y="440" width="12" height="12" rx="3"/><text class="ts" x="78" y="450">agent action</text>
+    <rect class="c-teal" x="190" y="440" width="12" height="12" rx="3"/><text class="ts" x="208" y="450">skills &amp; memory</text>
+    <rect class="c-gray" x="340" y="440" width="12" height="12" rx="3"/><text class="ts" x="358" y="450">curator</text>
+    <rect class="c-blue" x="430" y="440" width="12" height="12" rx="3"/><text class="ts" x="448" y="450">design note</text>
+    </svg>
+    <figcaption>The closed loop. Skills and memory captured from one turn are stored, curated, and recalled to improve the next — without ever invalidating the prompt cache.</figcaption>
+  </figure>
+
+  <h3>Skills</h3>
+  <p>A skill is a <code>SKILL.md</code> with YAML frontmatter, living in <code>skills/</code> (built-in), <code>~/.hermes/skills/</code> (user / agent-created), or <code>optional-skills/</code> (shipped but off by default). <code>scan_skill_commands()</code> (<code>agent/skill_commands.py:348</code>) turns each into a <code>/slash-command</code>. The cache-critical detail: invoking a skill never touches the system prompt — <code>build_skill_invocation_message()</code> (<code>:517</code>) loads the whole body into a <strong>user message</strong> behind an <code>[IMPORTANT: the user invoked '{skill}'…]</code> marker. Creation is via <code>/learn</code> (<code>build_learn_prompt()</code>, <code>learn_prompt.py:72</code>) — the agent gathers sources with its normal tools and authors one <code>SKILL.md</code> via <code>skill_manage action=create</code> — or <strong>autonomously</strong>: the <code>_iters_since_skill</code> counter from the agent loop fires a nudge after a complex multi-tool task, prompting the agent to persist what it just figured out.</p>
+
+  <h3>Curator — skills don't accumulate forever</h3>
+  <p>"Walks a lifecycle state machine" is literal: each skill carries an explicit stored <code>state</code>, and a function flips it based on inactivity.</p>
+
+  <figure>
+    <svg width="100%" viewBox="0 0 680 324" role="img" xmlns="http://www.w3.org/2000/svg">
+    <title>The curator skill lifecycle: active skills go stale after 30 idle days and archived after 90, reactivate when reused; pinned and hub skills are exempt.</title>
+    <desc>Three states: Active (recently used), Stale (30+ days idle), Archived (90+ days idle, moved to the .archive directory). Active becomes stale after 30 idle days; stale or active becomes archived after 90 idle days; a reused stale skill reactivates. State is stored as an explicit field in usage.json and moved by apply_automatic_transitions, kicked off by maybe_run_curator at CLI startup and an hourly gateway tick, gated to once every seven days. Pinned, hub-installed, and protected built-in skills are exempt and archive is one-way.</desc>
+    <defs><marker id="arrowJ" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse"><path d="M2 1L8 5L2 9" fill="none" stroke="context-stroke" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></marker></defs>
+    <text class="ts" x="40" y="40">Curator lifecycle — skills age out by inactivity; the curator flips the stored state.</text>
+    <g class="c-teal"><rect x="50" y="110" width="160" height="64" rx="10"/><text class="th" x="130" y="136" text-anchor="middle">Active</text><text class="ts" x="130" y="154" text-anchor="middle">recently used</text></g>
+    <g class="c-amber"><rect x="270" y="110" width="160" height="64" rx="10"/><text class="th" x="350" y="136" text-anchor="middle">Stale</text><text class="ts" x="350" y="154" text-anchor="middle">30+ days idle</text></g>
+    <g class="c-gray"><rect x="490" y="110" width="160" height="64" rx="10"/><text class="th" x="570" y="136" text-anchor="middle">Archived</text><text class="ts" x="570" y="154" text-anchor="middle">90d idle · .archive/</text></g>
+    <text class="ts" x="239" y="134" text-anchor="middle">idle 30d</text>
+    <line x1="210" y1="142" x2="268" y2="142" stroke="#888780" stroke-width="1.5" marker-end="url(#arrowJ)"/>
+    <text class="ts" x="459" y="134" text-anchor="middle">idle 90d</text>
+    <line x1="430" y1="142" x2="488" y2="142" stroke="#888780" stroke-width="1.5" marker-end="url(#arrowJ)"/>
+    <path d="M272 174 C 250 198, 230 198, 208 174" fill="none" stroke="#888780" stroke-width="1.5" marker-end="url(#arrowJ)"/>
+    <text class="ts" x="240" y="206" text-anchor="middle">reused → reactivate</text>
+    <path d="M130 110 C 130 66, 570 66, 570 108" fill="none" stroke="#888780" stroke-width="1.5" marker-end="url(#arrowJ)"/>
+    <text class="ts" x="350" y="58" text-anchor="middle">idle 90d (skips stale)</text>
+    <text class="ts" x="40" y="234">Where: state is an explicit field in ~/.hermes/skills/.usage.json (.curator_state holds run metadata).</text>
+    <text class="ts" x="40" y="254">Who / when: apply_automatic_transitions(), via maybe_run_curator() — CLI startup + ~hourly gateway tick, ≤ once / 7 days.</text>
+    <g class="c-blue"><rect x="40" y="270" width="600" height="46" rx="8"/><text class="th" x="340" y="292" text-anchor="middle">Exemptions &amp; reversibility</text><text class="ts" x="340" y="310" text-anchor="middle">pinned / hub-installed / protected built-ins are skipped · archive is one-way (manual restore)</text></g>
+    </svg>
+    <figcaption>A lazy, weekly sweep that flips a stored field by timestamp — nothing watches skills in real time.</figcaption>
+  </figure>
+
+  <ul>
+    <li><strong>Where the state lives:</strong> an explicit <code>state</code> field (<code>"active"</code>/<code>"stale"</code>/<code>"archived"</code>) in <code>~/.hermes/skills/.usage.json</code> — a plain JSON sidecar file keyed by skill name (<code>tools/skill_usage.py</code>), <strong>not the SQLite database</strong> (that stores conversations). The skill library is files on disk, so its metadata sits beside it. The record also holds <code>use_count</code>, <code>last_used_at</code>, <code>pinned</code>; the curator's own run metadata (<code>last_run_at</code>, <code>run_count</code>, <code>paused</code>) lives in a second JSON file, <code>~/.hermes/skills/.curator_state</code>. "Archived" is both a state value <em>and</em> a physical move into <code>.archive/</code>; "stale" is status-only.</li>
+    <li><strong>Who moves them:</strong> <code>apply_automatic_transitions()</code> (<code>curator.py:276</code>) computes <code>stale_cutoff = now − 30d</code> and <code>archive_cutoff = now − 90d</code>, then per skill: idle&gt;30d &amp; active → stale; idle&gt;90d → archive; reused-after-stale → active; pinned → skipped.</li>
+    <li><strong>Who triggers it:</strong> <code>maybe_run_curator()</code>, called at <strong>CLI startup</strong> (<code>cli.py</code>) and on the <strong>~hourly gateway housekeeping tick</strong> (<code>gateway/run.py</code>), gated by <code>should_run_now()</code> (<code>curator.py:219</code>) to run at most <strong>once every 7 days</strong>. Scope: agent-created always; bundled built-ins only if <code>curator.prune_builtins</code>; hub-installed and protected built-ins (e.g. <code>plan</code>) never.</li>
+  </ul>
+  <p>Optionally (off by default) the curator also spawns an isolated agent fork to <strong>consolidate</strong> overlapping skills into umbrellas. Every mutation is preceded by a <code>tar.gz</code> snapshot (<code>agent/curator_backup.py</code>) — which also backs up <code>cron/jobs.json</code>, since consolidation can rewrite skill references jobs point at.</p>
+
+  <h3>Memory &amp; user modeling</h3>
+  <p><code>MemoryManager</code> (<code>agent/memory_manager.py</code>) orchestrates the built-in memory plus <strong>at most one</strong> external provider. Two hooks bracket every turn: <code>prefetch_all(query)</code> recalls relevant context <em>before</em> the model call; <code>sync_all(user, assistant)</code> persists <em>after</em>. The flagship external provider is <strong>Honcho</strong> (<code>plugins/memory/honcho</code>) — "dialectic" user modeling that injects an evolving user representation + peer card and, on a configurable cadence, runs multi-pass reasoning about you. All injected into the <strong>user message</strong> in <code>&lt;memory-context&gt;</code> fences, with a <code>StreamingContextScrubber</code> (<code>:132</code>) stripping any leaked fences from the model's output.</p>
+
+  <h3>Cross-session recall</h3>
+  <p>This is how the agent reaches into <em>past</em> conversations (distinct from memory and from resuming a session).</p>
+
+  <figure>
+    <svg width="100%" viewBox="0 0 680 454" role="img" xmlns="http://www.w3.org/2000/svg">
+    <title>Cross-session recall: the agent calls the session_search tool, which runs FTS5 over all past sessions and returns raw structured hits; the agent's own model then summarizes them.</title>
+    <desc>The agent decides to recall and calls the session_search tool with a query and filters. The tool runs FTS5 over all past sessions using messages_fts and BM25 ranking, returning structured raw hits with session bookends and a window around the match, with no LLM inside the tool. The tool result goes back as a tool message and the agent's own model reads and uses it. This recall is distinct from memory: memory is curated facts in the system prompt, recall is full-text search over raw transcripts.</desc>
+    <defs><marker id="arrowK" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse"><path d="M2 1L8 5L2 9" fill="none" stroke="context-stroke" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></marker></defs>
+    <g class="c-purple"><rect x="170" y="46" width="340" height="50" rx="10"/><text class="th" x="340" y="72" text-anchor="middle">Agent decides to recall</text><text class="ts" x="340" y="88" text-anchor="middle">"didn't we set this up before?"</text></g>
+    <line x1="340" y1="96" x2="340" y2="116" stroke="#888780" stroke-width="1.5" marker-end="url(#arrowK)"/>
+    <g class="c-teal"><rect x="200" y="118" width="280" height="46" rx="8"/><text class="th" x="340" y="138" text-anchor="middle">session_search tool</text><text class="ts" x="340" y="154" text-anchor="middle">query + role/session filters</text></g>
+    <line x1="340" y1="164" x2="340" y2="184" stroke="#888780" stroke-width="1.5" marker-end="url(#arrowK)"/>
+    <g class="c-teal"><rect x="200" y="186" width="280" height="46" rx="8"/><text class="th" x="340" y="206" text-anchor="middle">FTS5 over all past sessions</text><text class="ts" x="340" y="222" text-anchor="middle">messages_fts · BM25 ranking</text></g>
+    <line x1="340" y1="232" x2="340" y2="252" stroke="#888780" stroke-width="1.5" marker-end="url(#arrowK)"/>
+    <g class="c-gray"><rect x="200" y="254" width="280" height="46" rx="8"/><text class="th" x="340" y="274" text-anchor="middle">Structured hits — raw</text><text class="ts" x="340" y="290" text-anchor="middle">bookends + window · no LLM in tool</text></g>
+    <line x1="340" y1="300" x2="340" y2="320" stroke="#888780" stroke-width="1.5" marker-end="url(#arrowK)"/>
+    <g class="c-purple"><rect x="170" y="322" width="340" height="50" rx="10"/><text class="th" x="340" y="348" text-anchor="middle">Agent's own model reads &amp; uses it</text><text class="ts" x="340" y="364" text-anchor="middle">summarize · quote · follow up</text></g>
+    <g class="c-blue"><rect x="40" y="392" width="600" height="50" rx="8"/><text class="th" x="340" y="414" text-anchor="middle">Recall ≠ memory</text><text class="ts" x="340" y="432" text-anchor="middle">memory = curated facts in the system prompt · recall = FTS5 over raw transcripts</text></g>
+    </svg>
+    <figcaption>The tool returns raw hits; the "LLM summarization" the README mentions is the agent's own model reasoning over them, not a step inside the tool.</figcaption>
+  </figure>
+
+  <ol>
+    <li><strong>The agent calls <code>session_search</code></strong> (<code>tools/session_search_tool.py</code>) — a normal gated tool, invoked when you reference earlier work. Not automatic.</li>
+    <li><strong>It runs FTS5 over <em>all</em> sessions.</strong> <code>SessionDB.search_messages()</code> (<code>hermes_state.py:3466</code>) joins <code>messages_fts → messages → sessions</code> with <strong>no session-id filter by default</strong>, ranked by BM25. The missing filter is exactly what makes it cross-session.</li>
+    <li><strong>It returns raw, structured hits — no LLM.</strong> The schema says so verbatim: "No LLM calls, no summarization." Per match it returns a <strong>bookend + window</strong> shape: the session's opening messages (the goal), a ±5-message window around the match (the detail), and the closing messages (the outcome) — enough to reconstruct goal → match → resolution without the full transcript.</li>
+    <li><strong>The agent's own model does the "summarizing."</strong> Hits come back as a tool-result message; the model reading them turns snippets into "three weeks ago we set the Docker backend to X." So the README's "FTS5 search with LLM summarization" is accurate, but the LLM step is the <em>agent itself</em>, not code inside the tool.</li>
+  </ol>
+  <p><strong>This is a different system from memory.</strong> Memory (<code>MEMORY.md</code>, Honcho) = curated facts surfaced automatically in context; recall = on-demand full-text search over raw transcripts. They share no code path. Both also differ from <em>resuming</em> a session, which loads one old conversation's full history via <code>get_messages()</code> to continue it.</p>
+
+  <h3>Why FTS5?</h3>
+  <p><strong>FTS5</strong> is a full-text search engine built into SQLite — virtual tables that index text and answer ranked keyword/phrase/boolean/prefix queries. Hermes keeps two: <code>messages_fts</code> (<code>unicode61</code>) and <code>messages_fts_trigram</code> (for CJK substring search), both kept in sync by <strong>triggers</strong> on every message insert/update/delete that index <code>content + tool_name + tool_calls</code> together. It fits Hermes's constraints exactly:</p>
+  <ul>
+    <li><strong>Zero dependencies, fully local.</strong> The store is already SQLite; FTS5 ships inside it. No Elasticsearch, no embedding service, no network — runs on a $5 VPS.</li>
+    <li><strong>Free to maintain.</strong> Trigger-driven, so the index can't drift from the transcript; writing a message <em>is</em> indexing it (no separate job).</li>
+    <li><strong>Ranking + snippets built in.</strong> BM25 for "most relevant first", <code>snippet()</code> for <code>&gt;&gt;&gt;highlighted&lt;&lt;&lt;</code> previews — exactly what you hand a model.</li>
+    <li><strong>CJK robustness.</strong> The trigram table + a LIKE fallback for 1–2 character queries handle scripts the default tokenizer mangles.</li>
+    <li><strong>Keyword, not semantic — on purpose.</strong> Cheap, deterministic, explainable; "semantic" recall is delegated to the model reading the results and to the separate memory/Honcho layer.</li>
+  </ul>
+  <p><code>/insights</code> (<code>agent/insights.py:84</code>) reuses the same store to aggregate historical sessions into token / cost / tool / skill / platform breakdowns.</p>
+</section>
+
+<section id="cron">
+  <h2 class="sec">Cron — autonomous, scheduled work</h2>
+  <p>Cron is a clean illustration of the <strong>Footprint Ladder</strong>: the <em>what-to-run</em> core is built-in (<code>cron/jobs.py</code>, <code>cron/scheduler.py</code>), the <em>when-to-fire</em> is a pluggable provider, and the <em>user surface</em> is both an agent tool and a CLI command — no new core model-tool was needed for the scheduling logic.</p>
+
+  <figure>
+    <svg width="100%" viewBox="0 0 680 608" role="img" xmlns="http://www.w3.org/2000/svg">
+    <title>Hermes cron lifecycle: author a job to jobs.json, the scheduler ticks and finds due jobs, advances next_run for at-most-once, runs either a script or an AIAgent, delivers the result to a platform, marks the run and computes the next fire.</title>
+    <desc>Authoring writes jobs to jobs.json via the cronjob tool or hermes cron CLI. A pluggable scheduler (built-in ticker or Chronos) ticks every 60 seconds, gets due jobs, advances next_run before dispatch for at-most-once semantics, branches to a no_agent script run or an LLM AIAgent run, delivers to telegram/discord/local/origin, then marks the run and computes the next fire, looping back to the tick.</desc>
+    <defs><marker id="arrowE" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse"><path d="M2 1L8 5L2 9" fill="none" stroke="context-stroke" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></marker></defs>
+
+    <g class="c-gray"><rect x="140" y="46" width="400" height="48" rx="9"/><text class="th" x="340" y="68" text-anchor="middle">Author a job</text><text class="ts" x="340" y="84" text-anchor="middle">cronjob() tool or  hermes cron  →  jobs.json</text></g>
+    <line x1="340" y1="94" x2="340" y2="118" stroke="#888780" stroke-width="1.5" marker-end="url(#arrowE)"/>
+
+    <g class="c-gray"><rect x="190" y="120" width="300" height="48" rx="8"/><text class="th" x="340" y="142" text-anchor="middle">Scheduler tick → due jobs</text><text class="ts" x="340" y="158" text-anchor="middle">every 60s · next_run_at ≤ now</text></g>
+    <g class="c-blue"><rect x="512" y="120" width="128" height="48" rx="8"/><text class="th" x="576" y="142" text-anchor="middle">Pluggable</text><text class="ts" x="576" y="158" text-anchor="middle">built-in/Chronos</text></g>
+    <line x1="512" y1="144" x2="490" y2="144" stroke="#888780" stroke-width="1.5" stroke-dasharray="4 3" marker-end="url(#arrowE)"/>
+    <line x1="340" y1="168" x2="340" y2="194" stroke="#888780" stroke-width="1.5" marker-end="url(#arrowE)"/>
+
+    <g class="c-teal"><rect x="190" y="196" width="300" height="48" rx="8"/><text class="th" x="340" y="218" text-anchor="middle">Advance next_run</text><text class="ts" x="340" y="234" text-anchor="middle">before dispatch · at-most-once</text></g>
+    <line x1="340" y1="244" x2="340" y2="270" stroke="#888780" stroke-width="1.5" marker-end="url(#arrowE)"/>
+
+    <g class="c-gray"><rect x="190" y="272" width="300" height="46" rx="8"/><text class="th" x="340" y="299" text-anchor="middle">Which run path?</text></g>
+    <line x1="340" y1="318" x2="220" y2="348" stroke="#888780" stroke-width="1.5" marker-end="url(#arrowE)"/>
+    <line x1="340" y1="318" x2="470" y2="348" stroke="#888780" stroke-width="1.5" marker-end="url(#arrowE)"/>
+
+    <g class="c-teal"><rect x="80" y="350" width="250" height="52" rx="8"/><text class="th" x="205" y="372" text-anchor="middle">no_agent: run script</text><text class="ts" x="205" y="388" text-anchor="middle">subprocess · timeout</text></g>
+    <g class="c-purple"><rect x="350" y="350" width="270" height="52" rx="8"/><text class="th" x="485" y="372" text-anchor="middle">LLM: spawn AIAgent</text><text class="ts" x="485" y="388" text-anchor="middle">prompt + skills + context_from</text></g>
+    <line x1="205" y1="402" x2="300" y2="430" stroke="#888780" stroke-width="1.5" marker-end="url(#arrowE)"/>
+    <line x1="485" y1="402" x2="380" y2="430" stroke="#888780" stroke-width="1.5" marker-end="url(#arrowE)"/>
+
+    <g class="c-coral"><rect x="190" y="432" width="300" height="48" rx="8"/><text class="th" x="340" y="454" text-anchor="middle">Deliver result</text><text class="ts" x="340" y="470" text-anchor="middle">telegram · discord · local · origin</text></g>
+    <line x1="340" y1="480" x2="340" y2="506" stroke="#888780" stroke-width="1.5" marker-end="url(#arrowE)"/>
+
+    <g class="c-gray"><rect x="190" y="508" width="300" height="48" rx="8"/><text class="th" x="340" y="530" text-anchor="middle">Mark run · compute next</text><text class="ts" x="340" y="546" text-anchor="middle">repeat N times, or complete</text></g>
+
+    <path d="M190 532 L60 532 L60 144 L188 144" fill="none" stroke="#888780" stroke-width="1.5" stroke-dasharray="4 3" marker-end="url(#arrowE)"/>
+    <text class="ts" x="70" y="528">next fire</text>
+
+    <rect class="c-purple" x="60" y="580" width="12" height="12" rx="3"/><text class="ts" x="78" y="590">agent run</text>
+    <rect class="c-teal" x="160" y="580" width="12" height="12" rx="3"/><text class="ts" x="178" y="590">job work</text>
+    <rect class="c-gray" x="270" y="580" width="12" height="12" rx="3"/><text class="ts" x="288" y="590">scheduling</text>
+    <rect class="c-coral" x="390" y="580" width="12" height="12" rx="3"/><text class="ts" x="408" y="590">delivery</text>
+    <rect class="c-blue" x="490" y="580" width="12" height="12" rx="3"/><text class="ts" x="508" y="590">providers</text>
+    </svg>
+    <figcaption>One scheduled job, from authoring to next fire. next_run advances before dispatch — the trick that gives recurring jobs at-most-once semantics across crashes.</figcaption>
+  </figure>
+
+  <h3>The job model</h3>
+  <p><code>cron/jobs.py:724</code> defines a JSON record in <code>~/.hermes/cron/jobs.json</code>: a <code>prompt</code>, a <code>schedule</code> (parsed into <code>once</code> / <code>interval</code> / <code>cron</code>-expression kinds), <code>repeat</code> count, <code>deliver</code> target, optional <code>skills</code>, <code>context_from</code> (output of <em>other</em> jobs piped in — chainable pipelines), <code>workdir</code>, per-job <code>model</code>/<code>provider</code>, and <code>no_agent</code>. Mutations take a cross-process file lock so multiple gateway replicas on one <code>HERMES_HOME</code> don't corrupt the file.</p>
+
+  <h3>Execution</h3>
+  <p>The tick (<code>tick()</code>, <code>scheduler.py:2384</code>) grabs a non-blocking lock, finds due jobs, and <strong>advances <code>next_run_at</code> before dispatch</strong> — that's how recurring jobs get at-most-once semantics even across a crash. Then <code>run_job()</code> (<code>:1597</code>) takes one of two paths: a <strong><code>no_agent</code> script</strong> (plain subprocess, with a <code>{"wakeAgent": false}</code> convention to stay silent), or a full <strong><code>AIAgent</code></strong> spun up with <code>platform="cron"</code>, a fresh session id, the job's skills loaded, upstream outputs injected, and a "you are running as a scheduled cron job" hint. It even <strong>scans the assembled prompt for injection threats</strong> before running, since cron prompts run unattended.</p>
+
+  <h3>Delivery &amp; the Footprint Ladder</h3>
+  <p>Delivery (<code>scheduler.py:514</code>) is decoupled from execution: output is saved to disk <em>first</em> (so it survives a delivery failure), then routed to the target — <code>telegram</code>, <code>discord</code>, <code>local</code>, <code>origin</code> (reply where the job was created), or comma-separated fan-out — preferring the live gateway adapter and falling back to a standalone send. <code>last_error</code> and <code>last_delivery_error</code> are tracked separately.</p>
+  <p>Where it sits on the ladder: the agent schedules its own jobs through the <code>cronjob()</code> tool (<code>tools/cronjob_tools.py:522</code>); you manage them with <code>hermes cron …</code>; and the <em>trigger</em> is a <code>CronScheduler</code> ABC. The default is a 60-second in-process ticker, but a plugin like <strong>Chronos</strong> (<code>docs/chronos-managed-cron-contract.md</code>) replaces it with externally-armed one-shots, so the agent process can scale to zero between fires and wake on demand — the "costs nearly nothing when idle" claim made concrete.</p>
+</section>
+
+<section id="sessions">
+  <h2 class="sec">Session storage — the SessionDB</h2>
+  <p>All conversation state lives in one SQLite database (<code>hermes_state.py</code>, the <code>SessionDB</code> class), profile-aware under <code>~/.hermes/</code>. It is both the transcript store <em>and</em> the search index, and it's the layer that makes prompt-cache restore possible across turns.</p>
+
+  <h3>The schema (the parts that matter)</h3>
+  <table>
+    <tr><th>Table</th><th>What it holds</th></tr>
+    <tr><td><code>sessions</code></td><td>One row per conversation: <code>id</code>, <code>source</code> (cli/telegram/…), <code>model</code>, <strong><code>system_prompt</code></strong> (the cached prefix, restored each turn), <code>parent_session_id</code> (subagent / handoff lineage), token + cost counters, <code>title</code>, <code>archived</code>, <code>rewind_count</code>.</td></tr>
+    <tr><td><code>messages</code></td><td>One row per message: <code>role</code>, <code>content</code>, <code>tool_calls</code>, <code>tool_name</code>, <code>reasoning*</code>, <code>timestamp</code>, <code>token_count</code>, and three state flags — <strong><code>active</code></strong> (0 after a rewind), <strong><code>compacted</code></strong> (1 if folded into a compression summary), <code>observed</code>.</td></tr>
+    <tr><td><code>messages_fts</code> + <code>messages_fts_trigram</code></td><td>FTS5 virtual tables for full-text and CJK-substring search, kept in sync by <strong>triggers</strong> on every message insert/update/delete.</td></tr>
+    <tr><td><code>state_meta</code>, <code>compression_locks</code></td><td>Key/value state and advisory locks coordinating compression across processes.</td></tr>
+  </table>
+
+  <h3>How writes happen</h3>
+  <p>Messages are flushed by <code>_flush_messages_to_session_db()</code> (<code>run_agent.py:1581</code>) — called from <em>multiple</em> exit points (early crash-safe persist, after each tool batch, at finalize). It tracks message <strong>object identity</strong> in a <code>_flushed_db_message_ids</code> set so repeated calls only write genuinely new rows (fixing a duplicate-write class of bug), and it survives message-sequence repair that would break a positional cursor. Multimodal tool results are reduced to a text summary before storage so base64 images never bloat the DB.</p>
+
+  <h3>Why this design</h3>
+  <ul>
+    <li><strong>Search is free.</strong> The FTS index is trigger-maintained, so the agent searching its own past (<code>search_messages()</code>, <code>:3466</code>) needs no separate indexing pass — every message is searchable the instant it's written.</li>
+    <li><strong>Cache restore is a DB read.</strong> Storing the <code>system_prompt</code> per session is what lets a fresh <code>AIAgent</code> (every gateway turn builds one) restore the byte-identical prefix and keep the Anthropic cache warm.</li>
+    <li><strong>Rewind/compress without loss.</strong> <code>active</code>/<code>compacted</code> flags mean <code>/undo</code> and compression hide rows rather than delete them — history stays intact and searchable.</li>
+    <li><strong>Lineage &amp; cost are first-class.</strong> <code>parent_session_id</code> threads subagents and cross-platform handoffs; per-session token/cost columns feed <code>/usage</code> and <code>/insights</code>.</li>
+  </ul>
+</section>
+
+<section id="trace">
+  <h2 class="sec">Request trace — sessions × the learning loop</h2>
+  <p>To see both systems interact, follow one CLI request — say you type <em>"refactor this module the way I like it."</em> The diagram is a sequence across three actors (the turn loop, the SessionDB, and the memory/skills subsystem); the text below maps each arrow to code.</p>
+
+  <figure>
+    <svg width="100%" viewBox="0 0 680 486" role="img" xmlns="http://www.w3.org/2000/svg">
+    <title>Trace of one CLI request across the turn loop, the SessionDB, and the memory/skills subsystem, grouped into pre-turn, loop, and finalize phases.</title>
+    <desc>Pre-turn: the loop creates the session row and reads the cached system prompt, persists the user message crash-safely, and prefetches memory to inject as a memory-context block. Loop: the model is called with the cached prefix, messages are appended incrementally and FTS-indexed, repeating until a final response. Finalize: a final flush plus stats, an async sync_all into memory, and a background review fork that writes skills and memory, then the response returns to the user.</desc>
+    <defs><marker id="arrowF" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse"><path d="M2 1L8 5L2 9" fill="none" stroke="context-stroke" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></marker></defs>
+
+    <g class="c-purple"><rect x="50" y="40" width="140" height="30" rx="8"/><text class="th" x="120" y="60" text-anchor="middle">Turn loop</text></g>
+    <g class="c-gray"><rect x="270" y="40" width="140" height="30" rx="8"/><text class="th" x="340" y="60" text-anchor="middle">SessionDB</text></g>
+    <g class="c-teal"><rect x="488" y="40" width="144" height="30" rx="8"/><text class="th" x="560" y="60" text-anchor="middle">Memory &amp; skills</text></g>
+
+    <line x1="120" y1="70" x2="120" y2="440" stroke="#888780" stroke-width="1" stroke-dasharray="3 4"/>
+    <line x1="340" y1="70" x2="340" y2="440" stroke="#888780" stroke-width="1" stroke-dasharray="3 4"/>
+    <line x1="560" y1="70" x2="560" y2="440" stroke="#888780" stroke-width="1" stroke-dasharray="3 4"/>
+
+    <line x1="40" y1="92" x2="640" y2="92" stroke="#888780" stroke-width="1" stroke-dasharray="2 4"/>
+    <text class="ts" x="40" y="88">PRE-TURN</text>
+    <text class="ts" x="230" y="104" text-anchor="middle">create row + read cached prompt</text>
+    <line x1="120" y1="110" x2="338" y2="110" stroke="#888780" stroke-width="1.5" marker-end="url(#arrowF)"/>
+    <text class="ts" x="230" y="134" text-anchor="middle">persist user msg (crash-safe)</text>
+    <line x1="120" y1="140" x2="338" y2="140" stroke="#888780" stroke-width="1.5" marker-end="url(#arrowF)"/>
+    <text class="ts" x="340" y="164" text-anchor="middle">prefetch → inject &lt;memory-context&gt;</text>
+    <line x1="120" y1="170" x2="558" y2="170" stroke="#888780" stroke-width="1.5" marker-end="url(#arrowF)"/>
+
+    <line x1="40" y1="206" x2="640" y2="206" stroke="#888780" stroke-width="1" stroke-dasharray="2 4"/>
+    <text class="ts" x="40" y="202">LOOP</text>
+    <path d="M122 218 C 172 216, 172 232, 124 230" fill="none" stroke="#888780" stroke-width="1.5" marker-end="url(#arrowF)"/>
+    <text class="ts" x="180" y="228">call model (cached prefix) → tools</text>
+    <text class="ts" x="230" y="248" text-anchor="middle">append msgs — FTS auto-indexed</text>
+    <line x1="120" y1="254" x2="338" y2="254" stroke="#888780" stroke-width="1.5" marker-end="url(#arrowF)"/>
+    <path d="M122 278 C 172 276, 172 292, 124 290" fill="none" stroke="#888780" stroke-width="1.5" marker-end="url(#arrowF)"/>
+    <text class="ts" x="180" y="288">repeat until final response</text>
+
+    <line x1="40" y1="320" x2="640" y2="320" stroke="#888780" stroke-width="1" stroke-dasharray="2 4"/>
+    <text class="ts" x="40" y="316">FINALIZE</text>
+    <text class="ts" x="230" y="332" text-anchor="middle">final flush + session stats</text>
+    <line x1="120" y1="338" x2="338" y2="338" stroke="#888780" stroke-width="1.5" marker-end="url(#arrowF)"/>
+    <text class="ts" x="340" y="362" text-anchor="middle">sync_all(user, response) — background</text>
+    <line x1="120" y1="368" x2="558" y2="368" stroke="#888780" stroke-width="1.5" stroke-dasharray="5 3" marker-end="url(#arrowF)"/>
+    <text class="ts" x="340" y="392" text-anchor="middle">spawn review fork → writes skills &amp; memory</text>
+    <line x1="120" y1="398" x2="558" y2="398" stroke="#888780" stroke-width="1.5" stroke-dasharray="5 3" marker-end="url(#arrowF)"/>
+    <text class="ts" x="84" y="422" text-anchor="middle">return</text>
+    <line x1="120" y1="428" x2="48" y2="428" stroke="#888780" stroke-width="1.5" marker-end="url(#arrowF)"/>
+
+    <rect class="c-purple" x="40" y="462" width="12" height="12" rx="3"/><text class="ts" x="58" y="472">turn loop</text>
+    <rect class="c-gray" x="150" y="462" width="12" height="12" rx="3"/><text class="ts" x="168" y="472">session DB</text>
+    <rect class="c-teal" x="270" y="462" width="12" height="12" rx="3"/><text class="ts" x="288" y="472">memory &amp; skills</text>
+    <line x1="430" y1="468" x2="455" y2="468" stroke="#888780" stroke-width="1.5" stroke-dasharray="5 3"/><text class="ts" x="460" y="472">async / background</text>
+    </svg>
+    <figcaption>One request, three actors. Note that the self-improving work (bottom two dashed arrows) happens <em>after</em> the reply is returned, on background threads.</figcaption>
+  </figure>
+
+  <h3>Pre-turn — <code>agent/turn_context.py</code></h3>
+  <ol>
+    <li><strong>Session row created</strong> — <code>_ensure_db_session()</code> (<code>run_agent.py:524</code>) inserts the <code>sessions</code> row (<code>system_prompt</code> initially NULL).</li>
+    <li><strong>Cached prompt restored, not rebuilt</strong> — <code>restore_or_build_system_prompt</code> (<code>conversation_loop.py:254</code>) reads <code>sessions.system_prompt</code> and restores it verbatim if it matches the runtime, so the prefix cache hits; a fresh session builds once and writes it back via <code>update_system_prompt</code> (<code>:368</code>).</li>
+    <li><strong>Your message persisted before the model call</strong> — <code>_persist_session</code> → <code>_flush_messages_to_session_db</code> (<code>run_agent.py:1581</code>). Crash-safe by construction.</li>
+    <li><strong>Memory prefetched</strong> — <code>MemoryManager.prefetch_all(query)</code> (<code>memory_manager.py:453</code>) asks every provider; the result is wrapped by <code>build_memory_context_block</code> and injected into the <strong>user message</strong> (<code>conversation_loop.py:750</code>), never the system prompt.</li>
+    <li><strong>Counters tick</strong> — <code>_turns_since_memory</code> (may set <code>should_review_memory</code>) and, inside the loop, <code>_iters_since_skill</code>. These seed the post-turn self-improvement.</li>
+  </ol>
+
+  <h3>Loop</h3>
+  <ol start="6">
+    <li>The model is called against the cached prefix. As tools run, new assistant/tool messages are <strong>appended incrementally</strong> (identity-tracked, idempotent). Every insert fires the FTS triggers — <strong>your conversation is searchable as it's written</strong>, no separate index step. <code>active</code>/<code>compacted</code> flags keep rewinds and compression non-destructive.</li>
+  </ol>
+
+  <h3>Finalize — <code>agent/turn_finalizer.py</code></h3>
+  <ol start="7">
+    <li><strong>Final flush + stats</strong> — remaining messages written, token/cost counters updated.</li>
+    <li><strong><code>sync_all</code> mirrors the turn into memory</strong> (<code>turn_finalizer.py:417</code> → <code>memory_manager.py:516</code>) on a <strong>background executor</strong>, so a slow provider can't stall the turn.</li>
+    <li><strong>The self-improving fork</strong> — the key mechanism. If <code>_iters_since_skill ≥ _skill_nudge_interval</code> (default 10) or <code>should_review_memory</code> is set, <code>_spawn_background_review</code> (<code>run_agent.py:1439</code>) launches a <strong>separate <code>AIAgent</code> on a daemon thread, after your reply is already delivered.</strong> It reuses the parent's warm prefix cache, runs quietly with nested nudges disabled, and is handed the transcript plus a review prompt (<code>agent/background_review.py</code>): the skill prompt says "be active — if the user corrected your style or workflow, embed it in <code>SKILL.md</code> now"; the memory prompt asks it to save persona/preferences. Its only meaningful tools are <code>skill_manage</code> and <code>memory</code>, so its output <em>is</em> a write to your skill library / <code>MEMORY.md</code>.</li>
+  </ol>
+  <div class="callout">
+    <span class="k">The punchline.</span>
+    <p style="margin:.4em 0 0">"Creates skills from experience" and "nudges itself to persist knowledge" are implemented as a <strong>shadow agent</strong> that reflects on each conversation and writes it down — invisibly, off the critical path, and without touching the user-facing conversation's prompt cache. Self-improvement and session storage are the same story told twice: the SessionDB is the durable record, and the background fork is what turns that record into lasting behavior.</p>
+  </div>
+</section>
+
+<footer>
+  <p><strong>Changelog</strong></p>
+  <ul class="changelog">
+    <li><b>2026-06-24</b> — Deepened the learning loop: curator state machine (where state is stored, who flips it, who triggers it) and cross-session recall (session_search tool, FTS5 over all sessions, the "no LLM in the tool" correction, why FTS5). Added 2 diagrams. Doc now has 11 diagrams.</li>
+    <li><b>2026-06-24</b> — Added a "Prompt caching" deep-dive (system prompt defined, build-vs-restore, why only the prefix, provider-vs-client division of labor) with 3 diagrams. Doc now has 9 diagrams across 10 sections.</li>
+    <li><b>2026-06-23</b> — Added session storage (SessionDB schema, write path, design rationale) and a request trace tying sessions to the learning loop — including the discovery that the "self-improving" nudge spawns a background review-agent fork (1 sequence diagram). Doc now has 6 diagrams across 9 sections.</li>
+    <li><b>2026-06-23</b> — Added the learning loop (skills, curator, memory/Honcho, FTS5 recall) and cron / scheduling (2 diagrams). Doc now has 5 diagrams across 7 sections.</li>
+    <li><b>2026-06-23</b> — Initial draft: what Hermes is, the two governing principles, architecture overview, the agent loop, and tools &amp; toolsets (3 diagrams).</li>
+  </ul>
+  <p>Living document generated during a code-exploration session. Line numbers reference repo version 0.17.0 and may drift as the codebase changes. Open this file in any browser — it is fully self-contained and adapts to light/dark mode.</p>
+</footer>
+
+</div>
+</body>
+</html>
